@@ -20,7 +20,7 @@ defmodule Qiniu.Auth do
   @spec generate_uptoken(Qiniu.PutPolicy.t) :: String.t
   def generate_uptoken(%PutPolicy{} = put_policy) do
     [access_key: access_key, secret_key: secret_key] =
-      Keyword.take(Qiniu.config, [:access_key, :secret_key])
+      get_key_from_config()
 
     encoded_put_policy = PutPolicy.encoded_json put_policy
     encoded_sign = hex_digest(secret_key, encoded_put_policy)
@@ -59,7 +59,7 @@ defmodule Qiniu.Auth do
     download_url = %{parsed | query: query} |> to_string
 
     [access_key: access_key, secret_key: secret_key] =
-      Keyword.take(Qiniu.config, [:access_key, :secret_key])
+      get_key_from_config()
 
     encoded_sign = hex_digest(secret_key, download_url)
     down_token = access_key <> ":" <> encoded_sign
@@ -84,7 +84,7 @@ defmodule Qiniu.Auth do
                   end
 
     [access_key: access_key, secret_key: secret_key] =
-      Keyword.take(Qiniu.config, [:access_key, :secret_key])
+      get_key_from_config()
 
     encoded_sign = hex_digest(secret_key, signing_str)
 
@@ -94,5 +94,14 @@ defmodule Qiniu.Auth do
   @doc false
   def hex_digest(key, data) when is_binary(key) and is_binary(data) do
     :crypto.hmac(:sha, key, data) |> Base.url_encode64
+  end
+
+  defp get_key_from_config do
+    case Keyword.take(Qiniu.config, [:access_key, :secret_key]) do
+      [access_key: access_key, secret_key: secret_key] ->
+        [access_key: access_key, secret_key: secret_key] 
+      _ ->
+        raise "Can not get key from config, please make sure set config for qiniu."
+    end
   end
 end
